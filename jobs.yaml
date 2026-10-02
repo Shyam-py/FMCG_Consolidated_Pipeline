@@ -1,0 +1,50 @@
+resources:
+  jobs:
+    FMCG_Incremental_Processing_Pipeline:
+      name: FMCG Incremental Processing Pipeline
+      trigger:
+        pause_status: UNPAUSED
+        file_arrival:
+          url: s3://sportsbar-dem/orders/landing/
+      tasks:
+        - task_key: dim_customer_processing
+          notebook_task:
+            notebook_path: /Workspace/Users/durgashyam9849@gmail.com/consolidated_pipeline/dimensional_data_procesing/customer_data_processing
+            base_parameters:
+              catalog: fmcg
+              data_source: customers
+            source: WORKSPACE
+        - task_key: dim_processing_products
+          depends_on:
+            - task_key: dim_customer_processing
+          notebook_task:
+            notebook_path: /Workspace/Users/durgashyam9849@gmail.com/consolidated_pipeline/dimensional_data_procesing/products_data_processing
+            base_parameters:
+              catalog: fmcg
+              data_source: products
+            source: WORKSPACE
+        - task_key: dim_processing_prices
+          depends_on:
+            - task_key: dim_processing_products
+          notebook_task:
+            notebook_path: /Workspace/Users/durgashyam9849@gmail.com/consolidated_pipeline/dimensional_data_procesing/pricing_data_processing
+            base_parameters:
+              catalog: fmcg
+              data_source: gross_price
+            source: WORKSPACE
+        - task_key: fact_processing_orders
+          depends_on:
+            - task_key: dim_processing_prices
+          notebook_task:
+            notebook_path: /Workspace/Users/durgashyam9849@gmail.com/consolidated_pipeline/fact_data_processing/Incremental_load_fact_data
+            base_parameters:
+              catalog: fmcg
+              data_source: orders
+            source: WORKSPACE
+      git_source:
+        git_url: https://github.com/Shyam-py/FMCG_Consolidated_Pipeline
+        git_provider: gitHub
+        git_commit: commit
+      queue:
+        enabled: true
+      performance_target: PERFORMANCE_OPTIMIZED
